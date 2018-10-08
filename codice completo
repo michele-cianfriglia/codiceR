@@ -1,1 +1,523 @@
+# -------------------------------------------------------------------------------------------------------------------------------------
+# --------------------------------------- Funzioni per ottenere le Figure 1.1 e 1.2 ---------------------------------------------------                                                                                         
+# -------------------------------------------------------------------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------------------
+# 1. Funzione che permette di calcolare il rischio dello stimatore per contrazione lineare
+# -----------------------------------------------------------------------------------------
+risk.lse = function(x, sigman, lambda, n){
+  n*(sigman^2)*(lambda^2) + ((1 - lambda)^2)*sum(x^2)
+}
+risk.lse.vec = Vectorize(risk.lse, "x")
+
+# ------------------------------------------------------------------------------------------------
+# 2. Funzione che permette di calcolare il rischio dello stimatore per contrazione lineare ottimo
+# ------------------------------------------------------------------------------------------------
+risk.lse.star = function(x, sigman, n){
+  lambda.star = sum(x^2)/(n*(sigman^2) + sum(x^2))
+  risk.star = n*(sigman^2)*lambda.star
+  return(risk.star)
+}
+risk.lse.star.vec = Vectorize(risk.lse.star, "x")
+
+# ---------------------------------------------------------------------------------
+# 3. Funzione che permette di calcolare il rischio dello stimatore di James--Stein 
+# ---------------------------------------------------------------------------------
+risk.jse = function(x, sigman, n){
+  2*(sigman^2) + ((n-2)*(sigman^2)*sum(x^2))/((n-2)*(sigman^2) + sum(x^2))
+}
+risk.jse.vec = Vectorize(risk.jse, "x")
+
+# Dati iniziali
+n = 4
+sigman = 1
+lambda = 0.2
+
+# Figura 1.1
+curve(risk.lse.vec(x, sigman, lambda, n), xlim = c(-4, 4),
+      xlab = expression("|| "*theta["n"]*" ||"[2]^2),
+      ylab = "MSE", lwd = 2, main = "")
+curve(risk.lse.star.vec(x, sigman, n), col = "orange", lwd = 2, add = T)
+abline(h = (sigman^2)*n, col = "red", lwd = 2)
+
+# Figura 1.2
+curve(risk.lse.vec(x, sigman, lambda, n), xlim = c(-4, 4),
+      xlab = expression("|| "*theta["n"]*" ||"[2]^2),
+      ylab = "MSE", lwd = 2, 
+      main = "")
+curve(risk.jse.vec(x, sigman, n), col = "green", lwd = 2, add = T)
+abline(h = (sigman^2)*n, col = "red", lwd = 2)
+
+# -------------------------------------------------------------------------------------------------------------------------------------
+# --------------------------------------------- Funzioni per ottenere la Figura 1.3 ---------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------
+# 1. Funzione che permette di ottenere lo stimatore soft threshold
+# -----------------------------------------------------------------
+soft.tr = function(x, lambda){
+  if(x > lambda){
+    return(x - lambda)
+  } else{
+  if(x < -lambda){
+    return(x + lambda)
+  } else{
+    return(0)
+  }
+    }
+}
+soft.tr.vec = Vectorize(soft.tr, "x")
+
+# Stimatore soft threshold - immagine a sinistra della Figura 1.3
+curve(soft.tr.vec(x, 0.4), ylim = c(-1, 1), xlim = c(-1, 1), lwd = 2, main = "",
+      xlab = expression(X[" i"]*" "%==%" "*hat(theta)[" i,OLS"](bold("Y")["n"])),
+      ylab = "")
+title(ylab = expression(hat(theta)[" i,ST"](lambda)), line = 2)
+abline(h = 0)
+abline(v = 0)
+abline(coef = c(0,1), lty = 2)
+points(-0.4,0, pch = 20)
+text(-0.4, 0.2, expression("- "*lambda))
+points(0.4,0, pch = 20)
+text(0.4, -0.2, expression("+ "*lambda))
+
+# -----------------------------------------------------------------
+# 2. Funzione che permette di ottenere lo stimatore hard threshold
+# -----------------------------------------------------------------
+hard.tr = function(x, lambda){
+  if(abs(x) > lambda){
+    return(x)
+  } else{
+      return(0)
+    }
+}
+hard.tr.vec = Vectorize(hard.tr, "x")
+
+# Stimatore hard threshold - immagine a destra della Figura 1.3
+curve(hard.tr.vec(x, 0.4), ylim = c(-1, 1), xlim = c(-1, 1), lwd = 2, main = "",
+      xlab = expression(X[" i"]*" "%==%" "*hat(theta)[" i,OLS"](bold("Y")["n"])),
+      ylab = "")
+title(ylab = expression(hat(theta)[" i,HT"](lambda)), line = 2)
+points(-0.4,0, pch = 20)
+text(-0.4, 0.2, expression("- "*lambda))
+points(0.4,0, pch = 20)
+text(0.4, -0.2, expression("+ "*lambda))
+
+# -------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------- Funzioni utilizzate per ottenere le Figure nella Sezione 3.1 del Capitolo 3 -------------------------------
+# -------------------------------------------------------------------------------------------------------------------------------------
+require(wavethresh)
+
+# Dati iniziali
+n = 512
+x.n = seq(1, n)/n
+rsr = 1.5
+segnali = DJ.EX(n = n, signal = 1, rsnr = rsr)
+
+set.seed(1234)
+segnali.noisy = DJ.EX(n = n, signal = 1, rsnr = rsr, noisy = T)
+
+plot(x.n, segnali.noisy$blocks, pch = 21, col = "grey",
+     xlab = list("x", cex = 1.4), ylab = "", main = "", yaxt = "n")
+axis(2, at = -2:4, las = 2)
+title(ylab = list("blocks", cex = 1.4), line = 2.5)
+points(x.n, segnali$blocks, type = "l", lwd = 2)
+
+plot(x.n, segnali.noisy$bumps, pch = 21, col = "grey", ylim = c(-2, 10),
+     xlab = list("x", cex = 1.4), ylab = "", main = "", yaxt = "n")
+axis(2, at = -2:10, labels = c("-2", "", "0", "", "2", "", 
+                               "4", "","6","", "8", "", "10"), las = 2)
+title(ylab = list("bumps", cex = 1.4), line = 2.5)
+points(x.n, segnali$bumps, type = "l", lwd = 2)
+
+plot(x.n, segnali.noisy$heavi, pch = 21, col = "grey", ylim = c(-4, 3),
+    xlab = list("x", cex = 1.4), ylab = "", main = "", yaxt = "n")
+axis(2, at = -4:3, las = 2)
+title(ylab = list("heavi", cex = 1.4), line = 2.5)
+points(x.n, segnali$heavi, type = "l", lwd = 2)
+
+plot(x.n, segnali.noisy$doppler, pch = 21, col = "grey",
+     xlab = list("x", cex = 1.4), ylab = "", main = "", yaxt = "n")
+axis(2, at = -3:3, las = 2)
+title(ylab = list("doppler", cex = 1.4), line = 2.5)
+points(x.n, segnali$doppler, type = "l", lwd = 2)
+
+# ---------------------------------------
+# 1. Funzione che calcola la base coseno
+# ---------------------------------------
+cos.basis = function(x = (1:500)/500, j.max = length(x)){
+  n = length(x)
+  mat.basis = matrix(NA, nrow = n, ncol = j.max)
+  mat.basis[,1] = 1 
+  for (j in 2:j.max){
+    mat.basis[,j] = sqrt(2)*cos((j-1)*pi*x)	
+  }
+  return(mat.basis)
+}
+
+# -----------------------------------------------------------------------------
+# 2. Funzione che permette di ottenere lo stimatore di massima verosimiglianza
+# -----------------------------------------------------------------------------
+coeff.noise = function(Y, mat.basis){
+  # mat.basis = n x j.max
+  n = length(Y)
+  Z = 1/n*(Y %*% mat.basis)
+  return(as.vector(Z))
+}
+
+# -----------------------------------------------------------------------------
+# 3. Funzione che permette di ricostruire la funzione di regressione incognita
+# -----------------------------------------------------------------------------
+fun.rebuild = function(mat.basis, theta.hat){
+  # mat.basis = n x j.max
+  # theta.hat = j.max x 1
+  f.hat = mat.basis %*% theta.hat
+  return(f.hat)
+}
+
+# ----------------------------------------------------------
+# 4. Funzione che calcola lo RMSE (Root Mean Squared Error)
+# ----------------------------------------------------------
+rmse = function(y.true, y.estimated){
+  sqrt(mean( (y.true - y.estimated)^2 ))
+}
+
+# ------------------------------------------------------------------
+# 5. Funzione che permette di ottenere lo stimatore di James--Stein
+# ------------------------------------------------------------------
+theta.JS = function(Y, sigma2){
+  n = length(Y)
+  Y.nr = sum(Y^2)
+  jnk = ((n - 2)*sigma2)/Y.nr
+  # Fattore di compressione dello stimatore di James-Stein
+  lam.JS = (1 - jnk)
+  return(list(theta.hat = lam.JS*Y, lam.JS = lam.JS))
+}
+
+# -------------------------------------------------------------------------------------------------------------------------
+# 6. Funzione che permette di calcolare lo stimatore corretto del rischio di Stein degli stimatori per contrazione lineari
+# -------------------------------------------------------------------------------------------------------------------------
+R.hat = function(lam, Y, sigma2){
+  n = length(Y)
+  Y.nr = sum(Y^2)
+  out = n*sigma2*(2*lam - 1) + ((1 - lam)^2)*Y.nr
+  return(out)
+}
+
+# ----------------------------------------------------------------------------------
+# 7. Funzione che permette di ottenere lo stimatore aggregato con pesi esponenziali
+# ----------------------------------------------------------------------------------
+theta.EWA = function(Y, sigma2, eta, alpha = 1, beta = 1){
+  # Funzioni ausiliarie da integrare
+  # denominatore
+  ewa.den = function(lam, Y, sigma2, eta){
+    n = length(Y)
+    exp(-n*eta*R.hat(lam, Y, sigma2))*dbeta(lam, shape1 = alpha, shape2 = beta)
+  }
+  # numeratore
+  ewa.num = function(lam, Y, sigma2, eta){
+    n = length(Y)
+    lam*exp(-n*eta*R.hat(lam, Y, sigma2))*dbeta(lam, shape1 = alpha, shape2 = beta)
+  }  
+  # Integrazione numerica
+  den = integrate(ewa.den, 0, 1, Y = Y, sigma2 = sigma2, eta = eta)
+  num = integrate(ewa.num, 0, 1, Y = Y, sigma2 = sigma2, eta = eta)
+  # Fattore di compressione dello stimatore EWA
+  lam.ewa = (num$value)/(den$value)
+  return(list(theta.ewa = lam.ewa*Y, lam.ewa = lam.ewa))
+}
+
+# ----------------------------------------------------------------------------------
+# 8. Funzione che permette di ottenere lo stimatore corretto della varianza sigma^2
+# ----------------------------------------------------------------------------------
+HF.var = function(Z, j.cut = round(length(Z)/4)){
+  n = length(Z)
+  min.idx = n - (j.cut - 1)
+  out = (n/j.cut)*sum( (Z[min.idx:n])^2 )
+  return(out)
+}
+
+# ---------------------------------------------------------------------------------------------------------
+# 9. Funzione che permette di scegliere il colore per le varie densità stimate nelle Figure 3.3, 3.4 e 3.5
+# ---------------------------------------------------------------------------------------------------------
+add.alpha = function(col, alpha = 1){
+  if(missing(col))
+    stop("Please provide a vector of colours.")
+  apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha = alpha))  
+}
+
+# -----------------------------------------------------------------------------------------
+# -------------------------------- ESEMPIP SETUP SIMULATIVO -------------------------------
+# -----------------------------------------------------------------------------------------
+# N.B. Gli altri setup simulativi sono ottenuti da questo modificando la distribuzione a priori
+#      ed il parametro di temperatura inversa eta passati alla funzione theta.EWA, per questo 
+#      motivo non sono riportati nel dettaglio.
+
+# Parametri iniziali
+n = 2^9 
+sequence = 1:n
+x.n = sequence/n
+M = 5000 
+rsnr = 1.5 
+eta = 0.1
+
+# Dati iniziali
+y.clean = DJ.EX(n = n)
+n.sig = length(y.clean)
+my.bas = cos.basis(x = x.n)
+
+# Inizializzo l'array che contiene i valori degli RMSE stimati
+name.est = c("MV", "JS", "EWA")
+MSE.mat = array(NA, dim = c(M, length(name.est), length(y.clean)),
+                dimnames = list(paste("sim-",1:M, sep = ""), name.est, names(y.clean)))
+
+# Loop
+set.seed(1234)
+pb = txtProgressBar(min = 0, max = M, initial = 0, style = 3) 
+for(m in 1:M){
+   # Segnali rumorosi
+   y.obs = DJ.EX(n = n, rsnr = rsnr,  noisy = T)
+   
+   # Stimatore di massima verosimiglianza
+   theta.est.MV  = lapply(y.obs, function(x) coeff.noise(x, my.bas) )
+   fun.est.MV    = lapply(theta.est.MV, function(x) fun.rebuild(my.bas, x) )
+   MSE.mat[m,1,] = sapply(1:n.sig, function(x) rmse(y.clean[[x]], fun.est.MV[[x]]) )
+   
+   # Stimatore della varianza HF
+   var.est <- lapply(theta.est.MV, function(x) HF.var(x)/n )
+   
+   # Stimatore di James--Stein
+   theta.est.JS = lapply(1:n.sig, function(x) theta.JS(theta.est.MV[[x]], var.est[[x]]) )
+   fun.est.JS = lapply(1:n.sig, function(x) fun.rebuild(my.bas, theta.est.JS[[x]]$theta.hat) )
+   MSE.mat[m,2,] = sapply(1:n.sig, function(x) rmse(y.clean[[x]], fun.est.JS[[x]]) )
+   
+   # Stimatore EWA
+   theta.est.EWA = lapply(1:length(fun.est.MV), function(x) theta.EWA(theta.est.MV[[x]], var.est[[x]], eta) )
+   fun.est.EWA = lapply(1:n.sig, function(x) fun.rebuild(my.bas, theta.est.EWA[[x]]$theta.ewa) )
+   MSE.mat[m,3,] = sapply(1:length(fun.est.EWA), function(x) rmse(y.clean[[x]], fun.est.EWA[[x]]) )
+   
+   # Aggiorno la barra del progresso
+   setTxtProgressBar(pb,m)
+}
+
+# Rappresento la Figura 3.3
+colo = add.alpha(c("#3182bd", "green", "#fd8d3c"))
+
+par(mfrow = c(2, 2))
+for (i in 1:n.sig){
+  plot(density(MSE.mat[,"MV",i], na.rm = T), 
+       xlim = range( MSE.mat[,,i], na.rm = T),
+       lwd = 2, col = colo[1], main = "",
+       xlab = list("RMSE", cex = 1.4), 
+       ylab = list(dimnames(MSE.mat)[[3]][i], cex = 1.4)
+       )
+  lines(density(MSE.mat[,"JS",i], na.rm = T), lwd = 2, col = colo[2])
+  lines(density(MSE.mat[,"EWA",i], na.rm = T), lwd = 2, col = colo[3])
+  abline(v = mean(MSE.mat[,"MV",i], na.rm = T), lwd = 2, lty = 2, col = colo[1])
+  abline(v = mean(MSE.mat[,"JS",i], na.rm = T), lwd = 2, lty = 2, col = colo[2])
+  abline(v = mean(MSE.mat[,"EWA",i], na.rm = T), lwd = 2, lty = 2, col = colo[3])
+}
+
+# -------------------------------------------------------------------------------------------------------------------------------------
+# -------------------------------- Metodo per ottenere le Figure nella Sezione 3.2 del Capitolo 3 -------------------------------------
+# -------------------------------------------------------------------------------------------------------------------------------------
+
+# --------------------------------------------------------------
+# --------------- IMMAGINE DI JOHN LENNON ----------------------
+# --------------------------------------------------------------
+require(fields)
+
+# -------------------------------
+# 1. Funzione che calcola il MSE
+# -------------------------------
+mse = function(y.true, y.estimated){
+  mean( (y.true - y.estimated)^2 )
+}
+
+# --------------------------------------------------------------------------------------------------------------------
+# 2. Funzione che permette di calcolare l'indice PSNR per confrontare la qualità delle diverse procedure di denoising
+# --------------------------------------------------------------------------------------------------------------------
+# N.B. nel nostro caso maxU è 255 perché utilizziamo sfumature di grigio
+
+PSNR = function(mat.originale, mat.stimata){
+  # Calcolo il MSE tra l'immagine originale e l'immagine stimata
+  mse.vec = rep(NA, times = nrow(mat.originale))
+  for(i in 1:nrow(mat.originale)){
+    mse.vec[i] = mse(mat.originale[i,], mat.stimata[i,])
+  }
+  mse.imm = (1/n)*sum(mse.vec)
+  # Calcolo l'indice PSNR
+  maxu = 255
+  PSNR = 20*log10(maxu/sqrt(mse.imm))
+  return(PSNR)
+}
+
+# Dati iniziali 
+data(lennon)
+
+# Immagine di John Lennon originale
+image(lennon, col = grey(seq(0.3, 0.9, length = 256)),
+      axes = F, asp = 1)
+
+set.seed(2454)
+lennon.noisy = matrix(NA, nrow = nrow(lennon), ncol = ncol(lennon))
+sigma = 10
+
+for(i in 1:nrow(lennon)){
+  lennon.noisy[i,] = lennon[i,] + rnorm(nrow(lennon), 0, sigma)
+}
+
+# Immagine di John Lennon rumorosa
+image(lennon.noisy, col = grey(seq(0.3, 0.9, length = 256)),
+      axes = F, asp = 1)
+
+n = nrow(lennon)
+sequence = 1:n
+x.n = sequence/n
+my.bas  = cos.basis(x = x.n)
+
+# ----------------------------------------------------------------------------
+# Ricostruisco l'immagine utilizzando lo stimatore di massima verosimiglianza
+# ----------------------------------------------------------------------------
+mat.MV.est = matrix(NA, nrow = n, ncol = n)
+theta.est.MV = matrix(NA, nrow = n, ncol = n)
+
+for(i in 1:n){
+  theta.est.MV[i,] = coeff.noise(lennon.noisy[i,], my.bas)
+  mat.MV.est[i,] = fun.rebuild(my.bas, theta.est.MV[i,])
+}
+
+# Immagine di John Lennon depurata dal rumore utilizzando lo stimatore di MV
+image(mat.MV.est, col = grey(seq(0.3, 0.9, length = 256)),
+      axes = F, asp = 1)
+
+PSNR.MV = PSNR(lennon, mat.MV.est)
+  
+# -----------------------------------------------------------------
+# Ricostruisco l'immagine utilizzando lo stimatore di James--Stein
+# -----------------------------------------------------------------
+var.est = rep(NA, times = n)
+
+for(i in 1:n){
+  var.est[i] = HF.var(theta.est.MV[i,])/n
+}
+
+mat.JS.est = matrix(NA, nrow = n, ncol = n)
+
+for(i in 1:n){
+  theta.est.JS = theta.JS(theta.est.MV[i,], var.est[i])
+  mat.JS.est[i,] = fun.rebuild(my.bas, theta.est.JS$theta.hat)
+}
+
+# Immagine di John Lennon depurata dal rumore utilizzando lo stimatore di JS
+image(mat.JS.est, col = grey(seq(0.3, 0.9, length = 256)),
+      axes = F, asp = 1)
+
+PSNR.JS = PSNR(lennon, mat.JS.est) # 27.52
+
+# ---------------------------------------------------------------------------------
+# Ricostruisco l'immagine utilizzando lo stimatore aggregato con pesi esponenziali
+# ---------------------------------------------------------------------------------
+# N.B. per ottenere i diversi valore dell'indice PSNR è sufficiente modificare i valori
+#      di alpha e beta per ottenere le varie distribuzioni Beta a priori.
+mat.EWA.est = matrix(NA, nrow = n, ncol = n)
+
+for(i in 1:n){
+  theta.est.EWA = theta.EWA(theta.est.MV[i,], var.est[i], eta = 0.01, alpha = 1, beta = 1)
+  mat.EWA.est[i,] = fun.rebuild(my.bas, theta.est.EWA$theta.ewa)
+}
+
+# Immagine di John Lennon depurata dal rumore utilizzando lo stimatore EWA
+image(mat.EWA.est, col = grey(seq(0.3, 0.9, length = 256)),
+      axes = F, asp = 1)
+      
+PSNR.EWA = PSNR(lennon, mat.EWA.est)
+
+# ---------------------------------------------------------------
+# ----------------- IMMAGINE DEL CERVELLO -----------------------
+# ---------------------------------------------------------------
+# N.B. in questo caso è riportato il codice utilizzato nel caso in cui
+#      sigma vale 10. Per ottenere i valori dell'indice PSNR al variare
+#      del livello di rumore, è sufficiente modificare il valore di sigma.
+require(DRIP)
+
+# Dati iniziali
+data(brain)
+
+# Immagine del cervello originale
+image(brain, col = grey(seq(0.3, 0.9, length = 256)),
+      axes = F, asp = 1)
+
+set.seed(2454)
+brain.noisy = matrix(NA, nrow = nrow(brain), ncol = ncol(brain))
+sigma = 10
+
+for(i in 1:nrow(brain)){
+  brain.noisy[i,] = brain[i,] + rnorm(nrow(brain), 0, sigma)
+}
+
+# Immagine del cervello rumorosa
+image(brain.noisy, col = grey(seq(0.3, 0.9, length = 256)),
+      axes = F, asp = 1)
+
+n = nrow(brain)
+sequence = 1:n
+x.n = sequence/n
+my.bas  = cos.basis(x = x.n)
+
+# ----------------------------------------------------------------------------
+# Ricostruisco l'immagine utilizzando lo stimatore di massima verosimiglianza
+# ----------------------------------------------------------------------------
+mat.MV.est = matrix(NA, nrow = n, ncol = n)
+theta.est.MV = matrix(NA, nrow = n, ncol = n)
+
+for(i in 1:n){
+  theta.est.MV[i,] = coeff.noise(brain.noisy[i,], my.bas)
+  mat.MV.est[i,] = fun.rebuild(my.bas, theta.est.MV[i,])
+}
+
+# Immagine del cervello depurata dal rumore utilizzando lo stimatore di MV
+image(mat.MV.est, col = grey(seq(0.3, 0.9, length = 256)),
+      axes = F, asp = 1)
+
+PSNR.MV = PSNR(brain, mat.MV.est) # 26.54
+
+# -----------------------------------------------------------------
+# Ricostruisco l'immagine utilizzando lo stimatore di James--Stein
+# -----------------------------------------------------------------
+var.est = rep(NA, times = n)
+
+for(i in 1:n){
+  var.est[i] = HF.var(theta.est.MV[i,])/n
+}
+
+mat.JS.est = matrix(NA, nrow = n, ncol = n)
+
+for(i in 1:n){
+  theta.est.JS = theta.JS(theta.est.MV[i,], var.est[i])
+  mat.JS.est[i,] = fun.rebuild(my.bas, theta.est.JS$theta.hat)
+}
+
+# Immagine del cervello depurata dal rumore utilizzando lo stimatore di JS
+image(mat.JS.est, col = grey(seq(0.3, 0.9, length = 256)),
+      axes = F, asp = 1)
+
+PSNR.JS = PSNR(brain, mat.JS.est) # 27.69
+
+# ---------------------------------------------------------------------------------
+# Ricostruisco l'immagine utilizzando lo stimatore aggregato con pesi esponenziali
+# ---------------------------------------------------------------------------------
+# N.B. per ottenere i diversi valore dell'indice PSNR è sufficiente modificare i valori
+#      di alpha e beta per ottenere le varie distribuzioni Beta a priori.
+mat.EWA.est = matrix(NA, nrow = n, ncol = n)
+
+for(i in 1:n){
+  theta.est.EWA = theta.EWA(theta.est.MV[i,], var.est[i], eta = 0.01, alpha = 1, beta = 1)
+  mat.EWA.est[i,] = fun.rebuild(my.bas, theta.est.EWA$theta.ewa)
+}
+
+# Immagine del cervello depurata dal rumore utilizzando lo stimatore EWA
+image(mat.EWA.est, col = grey(seq(0.3, 0.9, length = 256)),
+      axes = F, asp = 1)
+
+PSNR.EWA = PSNR(brain, mat.EWA.est) 
